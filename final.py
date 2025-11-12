@@ -70,26 +70,48 @@ def pdf_to_image(pdf_file, page_num=0, dpi=300):
 
 def load_file(uploaded_file, page_num=0):
     """PDF 또는 이미지 파일을 OpenCV 이미지로 로드"""
-    # 파일 포인터를 처음으로 되돌리기
-    uploaded_file.seek(0)
-    
-    file_type = uploaded_file.type
-    
-    if "pdf" in file_type:
-        # PDF 파일 처리
-        img_bgr, total_pages = pdf_to_image(uploaded_file, page_num=page_num, dpi=300)
-        return img_bgr, total_pages, "pdf"
-    else:
-        # 이미지 파일 처리
-        try:
+    try:
+        # 파일 포인터를 처음으로 되돌리기
+        uploaded_file.seek(0)
+        
+        file_type = uploaded_file.type
+        
+        if "pdf" in file_type.lower():
+            # PDF 파일 처리
+            img_bgr, total_pages = pdf_to_image(uploaded_file, page_num=page_num, dpi=300)
+            return img_bgr, total_pages, "pdf"
+        else:
+            # 이미지 파일 처리
+            uploaded_file.seek(0)
             data = uploaded_file.getvalue()
+            
+            if len(data) == 0:
+                raise ValueError("파일이 비어있습니다")
+            
             arr = np.frombuffer(data, np.uint8)
             img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            
             if img is None:
                 raise ValueError("이미지 디코딩 실패")
+            
             return img, 1, "image"
-        except Exception as e:
-            raise Exception(f"이미지 로드 실패: {str(e)}")
+            
+    except Exception as e:
+        raise Exception(f"파일 로드 실패: {str(e)}")
+
+def get_pdf_page_count(pdf_file):
+    """PDF 페이지 수만 확인"""
+    try:
+        pdf_file.seek(0)
+        pdf_data = pdf_file.read()
+        pdf_doc = fitz.open(stream=pdf_data, filetype="pdf")
+        page_count = pdf_doc.page_count
+        pdf_doc.close()
+        pdf_file.seek(0)
+        return page_count
+    except:
+        return 1
+
 def align_images(A_bgr, B_bgr, nfeatures=4000):
     """
     A_bgr (기준)와 B_bgr를 특징점 매칭으로 정렬.
@@ -511,14 +533,11 @@ def process_and_display(file1, file2, diff_threshold, feature_count, mode="compa
                 use_container_width=True
             )
        
-        return total_pages_A, total_pages_B, type_A, type_B
-       
     except Exception as e:
         st.error(f"오류 발생: {str(e)}")
         import traceback
         with st.expander("상세 오류 정보"):
             st.code(traceback.format_exc())
-        return 1, 1, "image", "image"
 
 # -------------------------
 # 탭 1: 도면 비교 (차이점 강조)
@@ -528,15 +547,19 @@ with tab1:
     
     col1, col2 = st.columns(2)
     with col1:
-        file1_tab1 = st.file_uploader("1번 도면 업로드", 
-                                     type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
-                                     key="file1_tab1")
+        file1_tab1 = st.file_uploader(
+            "1번 도면 업로드", 
+            type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
+            key="file1_tab1"
+        )
     with col2:
-        file2_tab1 = st.file_uploader("2번 도면 업로드", 
-                                     type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
-                                     key="file2_tab1")
+        file2_tab1 = st.file_uploader(
+            "2번 도면 업로드", 
+            type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
+            key="file2_tab1"
+        )
     
-    # PDF 페이지 선택 (파일이 업로드되고 PDF인 경우에만 표시)
+    # PDF 페이지 선택
     page1_tab1 = 0
     page2_tab1 = 0
     
@@ -545,16 +568,15 @@ with tab1:
         
         if file1_tab1 is not None and "pdf" in file1_tab1.type:
             with col_page1:
-                # 임시로 총 페이지 수 확인
                 try:
-                    _, total_pages_1, _ = load_file(file1_tab1, 0)
+                    total_pages_1 = get_pdf_page_count(file1_tab1)
                     if total_pages_1 > 1:
                         page1_tab1 = st.number_input(
                             f"1번 PDF 페이지 선택 (1-{total_pages_1})", 
                             min_value=1, 
                             max_value=total_pages_1, 
                             value=1,
-                            key="page1_tab1"
+                            key="page1_num_tab1"
                         ) - 1
                 except:
                     pass
@@ -562,14 +584,14 @@ with tab1:
         if file2_tab1 is not None and "pdf" in file2_tab1.type:
             with col_page2:
                 try:
-                    _, total_pages_2, _ = load_file(file2_tab1, 0)
+                    total_pages_2 = get_pdf_page_count(file2_tab1)
                     if total_pages_2 > 1:
                         page2_tab1 = st.number_input(
                             f"2번 PDF 페이지 선택 (1-{total_pages_2})", 
                             min_value=1, 
                             max_value=total_pages_2, 
                             value=1,
-                            key="page2_tab1"
+                            key="page2_num_tab1"
                         ) - 1
                 except:
                     pass
@@ -608,27 +630,17 @@ with tab2:
     
     col1, col2 = st.columns(2)
     with col1:
-        file1_tab1 = st.file_uploader(
+        file1_tab2 = st.file_uploader(
             "1번 도면 업로드", 
             type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
-            key="file1_tab1",
-            help="최대 200MB",
-            accept_multiple_files=False
+            key="file1_tab2"
         )
-        # 업로드 후 즉시 확인
-        if file1_tab1 is not None:
-            st.success(f"✅ 업로드 완료: {file1_tab1.name} ({len(file1_tab1.getvalue())/1024:.1f}KB)")
-    
     with col2:
-        file2_tab1 = st.file_uploader(
+        file2_tab2 = st.file_uploader(
             "2번 도면 업로드", 
             type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
-            key="file2_tab1",
-            help="최대 200MB",
-            accept_multiple_files=False
+            key="file2_tab2"
         )
-        if file2_tab1 is not None:
-            st.success(f"✅ 업로드 완료: {file2_tab1.name} ({len(file2_tab1.getvalue())/1024:.1f}KB)")
     
     # PDF 페이지 선택
     page1_tab2 = 0
@@ -640,14 +652,14 @@ with tab2:
         if file1_tab2 is not None and "pdf" in file1_tab2.type:
             with col_page1:
                 try:
-                    _, total_pages_1, _ = load_file(file1_tab2, 0)
+                    total_pages_1 = get_pdf_page_count(file1_tab2)
                     if total_pages_1 > 1:
                         page1_tab2 = st.number_input(
                             f"1번 PDF 페이지 선택 (1-{total_pages_1})", 
                             min_value=1, 
                             max_value=total_pages_1, 
                             value=1,
-                            key="page1_tab2"
+                            key="page1_num_tab2"
                         ) - 1
                 except:
                     pass
@@ -655,14 +667,14 @@ with tab2:
         if file2_tab2 is not None and "pdf" in file2_tab2.type:
             with col_page2:
                 try:
-                    _, total_pages_2, _ = load_file(file2_tab2, 0)
+                    total_pages_2 = get_pdf_page_count(file2_tab2)
                     if total_pages_2 > 1:
                         page2_tab2 = st.number_input(
                             f"2번 PDF 페이지 선택 (1-{total_pages_2})", 
                             min_value=1, 
                             max_value=total_pages_2, 
                             value=1,
-                            key="page2_tab2"
+                            key="page2_num_tab2"
                         ) - 1
                 except:
                     pass
@@ -689,5 +701,4 @@ with tab2:
             6. **다운로드**: 결과 이미지를 PNG로 저장 가능
             
             **지원 형식**: JPG, PNG, BMP, TIFF, PDF
-
             """)
