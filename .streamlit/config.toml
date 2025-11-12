@@ -1,21 +1,5 @@
 [server]
 maxUploadSize = 200
-headless = true
-enableXsrfProtection = false
-enableCORS = false
-maxMessageSize = 200
-enableStaticServing = false
-
-[server.fileWatcherType]
-usePolling = false
-
-[browser]
-gatherUsageStats = false
-serverAddress = "0.0.0.0"
-
-[runner]
-magicEnabled = true
-fastReruns = true
 
 [theme]
 base = "light"
