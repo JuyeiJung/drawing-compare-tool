@@ -1,5 +1,5 @@
-streamlit
-numpy
-opencv-python-headless
-Pillow
-PyMuPDF
+streamlit==1.40.0
+numpy>=1.26.0
+opencv-python-headless>=4.8.0
+Pillow>=10.0.0
+PyMuPDF>=1.23.0
