@@ -608,13 +608,27 @@ with tab2:
     
     col1, col2 = st.columns(2)
     with col1:
-        file1_tab2 = st.file_uploader("1번 도면 업로드", 
-                                     type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
-                                     key="file1_tab2")
+        file1_tab1 = st.file_uploader(
+            "1번 도면 업로드", 
+            type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
+            key="file1_tab1",
+            help="최대 200MB",
+            accept_multiple_files=False
+        )
+        # 업로드 후 즉시 확인
+        if file1_tab1 is not None:
+            st.success(f"✅ 업로드 완료: {file1_tab1.name} ({len(file1_tab1.getvalue())/1024:.1f}KB)")
+    
     with col2:
-        file2_tab2 = st.file_uploader("2번 도면 업로드", 
-                                     type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
-                                     key="file2_tab2")
+        file2_tab1 = st.file_uploader(
+            "2번 도면 업로드", 
+            type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"], 
+            key="file2_tab1",
+            help="최대 200MB",
+            accept_multiple_files=False
+        )
+        if file2_tab1 is not None:
+            st.success(f"✅ 업로드 완료: {file2_tab1.name} ({len(file2_tab1.getvalue())/1024:.1f}KB)")
     
     # PDF 페이지 선택
     page1_tab2 = 0
@@ -675,4 +689,5 @@ with tab2:
             6. **다운로드**: 결과 이미지를 PNG로 저장 가능
             
             **지원 형식**: JPG, PNG, BMP, TIFF, PDF
+
             """)
