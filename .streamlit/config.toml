@@ -1,19 +1,25 @@
 [server]
 maxUploadSize = 200
+headless = true
+enableXsrfProtection = false
 enableCORS = false
-enableXsrfProtection = true
 maxMessageSize = 200
+enableStaticServing = false
+
+[server.fileWatcherType]
+usePolling = false
 
 [browser]
 gatherUsageStats = false
+serverAddress = "0.0.0.0"
 
-[client]
-showErrorDetails = true
+[runner]
+magicEnabled = true
+fastReruns = true
 
 [theme]
+base = "light"
 primaryColor = "#FF4B4B"
 backgroundColor = "#FFFFFF"
 secondaryBackgroundColor = "#F0F2F6"
 textColor = "#262730"
-font = "sans serif"
-base = "light"
